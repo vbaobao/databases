@@ -4,7 +4,9 @@ var db = require('../db');
 module.exports = {
   messages: {
     get: function (callback) {
-      let sql = `SELECT message FROM messages`;
+      let sql = `SELECT m.message, r.roomname, u.username FROM messages m
+        LEFT OUTER JOIN rooms r ON r.id = m.roomname
+        LEFT OUTER JOIN users u ON u.id = m.username`;
 
       connection.query(sql, (err, results, fields) => {
         if (err) {
@@ -12,7 +14,6 @@ module.exports = {
           callback(err);
           return;
         }
-        console.log('RESULTS and FIELDS OF GET MESSAGES:', results, fields);
         callback(null, results);
       });
     }, // a function which produces all the messages
@@ -25,29 +26,22 @@ module.exports = {
           callback(err);
           return;
         }
-        console.log(`Rows affected in table 'rooms': ${results.affectedRows}`);
-      });
+        console.log(`New room added: ${results.affectedRows}`);
+        let sqlMessage = `
+        INSERT messages (message, roomname, username)
+        VALUES (?, (SELECT id FROM rooms WHERE roomname = ?), (SELECT id FROM users WHERE username = ?))
+        `;
+        let sqlVals = [message.message,message.roomname, message.username];
 
-      // let sqlMessage = `
-      // SET @roomname_id = (SELECT id FROM rooms WHERE roomname = ?);
-      // SET @username_id = (SELECT id FROM users WHERE username = ?);
-      // INSERT messages (message, roomname, username)
-      // VALUES (?, @roomname_id, @username_id)
-      // `;
-
-      let sqlMessage = `
-      INSERT messages (message, roomname, username)
-      VALUES (?, (SELECT id FROM rooms WHERE roomname = ?), (SELECT id FROM users WHERE username = ?))
-      `;
-
-      connection.query(sqlMessage, [message.message, message.roomname, message.username], (err, results, fields) => {
-        if (err) {
-          console.error(err.message);
-          callback(err);
-          return;
-        }
-
-        callback(null, message);
+        connection.query(sqlMessage, sqlVals, (err, results, fields) => {
+          if (err) {
+            console.error(err.message);
+            callback(err);
+            return;
+          }
+          console.log('New message added: ', results.affectedRows);
+          callback(null, message);
+        });
       });
     } // a function which can be used to insert a message into the database
   },
@@ -63,7 +57,6 @@ module.exports = {
           callback(err);
           return;
         }
-        console.log('RESULT and FIELDS OF GET USERS:' , results, fields);
         callback(null, results);
       });
     },
