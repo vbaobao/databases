@@ -40,7 +40,7 @@ module.exports = {
             return;
           }
           console.log('New message added: ', results.affectedRows);
-          callback(null, message);
+          callback(null, results);
         });
       });
     } // a function which can be used to insert a message into the database
