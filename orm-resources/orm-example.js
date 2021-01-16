@@ -12,44 +12,40 @@ var db = new Sequelize('chat', 'root', '');
 /* first define the data structure by giving property names and datatypes
  * See http://sequelizejs.com for other datatypes you can use besides STRING. */
 var User = db.define('users', {
-  username: Sequelize.STRING
+  username: { type: Sequelize.STRING, unique: true }
+});
+
+var Room = db.define('rooms', {
+  roomname: { type: Sequelize.STRING, unique: true }
 });
 
 var Message = db.define('messages', {
+  message: Sequelize.STRING,
   username: Sequelize.INTEGER,
-  message: Sequelize.STRING
+  roomname: Sequelize.INTEGER
 });
 
 User.hasMany(Message, { foreignKey: 'username', sourceKey: 'id' });
 Message.belongsTo(User, { foreignKey: 'username', targetKey: 'id' });
+Room.hasMany(Message, { foreignKey: 'roomname', sourceKey: 'id' });
+Message.belongsTo(Room, { foreignKey: 'roomname', targetKey: 'id' });
 
 // 
 
 /* Sequelize comes with built in support for promises
  * making it easy to chain asynchronous operations together */
-User.sync()
-  .then(function() {
-    // Now instantiate an object and save it:
-    return User.create({username: 'Jean Valjean'});
-  })
-  .then(function() {
-    // Retrieve objects from the database:
-    return User.findAll({ where: {username: 'Jean Valjean'} });
-  })
-  .then(function(users) {
-    users.forEach(function(user) {
-      console.log(user.username + ' exists');
-    });
+Promise.all([User.sync(), Room.sync(), Message.sync()])
+  .then(() => {
+    //return Promise.all([User.create({username: 'Jean Valjean'}), Room.create({roomname: 'Swordsmen'})]);
   })
   .then(() => {
-    Message.sync();
+    let userId = User.findAll({attributes: ['id'], where: {username: 'Jean Valjean'}});
+    let roomId = Room.findAll({attributes: ['id'], where: {roomname: 'Swordsmen'}});
+    return Promise.all([userId, roomId]);
   })
-  .then( () => {
-    return User.findAll({where: {username: 'Jean Valjean'}});
-  })
-  .then(function(userId) {
-    console.log('USER ID: ', userId);
-    return Message.create({message: 'My sword is missing.', username: userId.id});
+  .then((ids) => {
+    console.log('--------------', ids, '----------------');
+    return Message.create({message: 'My sword is missing', username: ids[0].dataValues.id, roomname: ids[1].dataValues.id});
   })
   .then(function() {
     return Message.findAll({where: {username: '1'}});
@@ -61,6 +57,6 @@ User.sync()
     db.close();
   })
   .catch(function(err) {
-    console.log(err);
+    console.error('THERE WAS AN ERROR: ', err.message, ' -- ERROR END');
     db.close();
   });
