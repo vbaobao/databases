@@ -89,4 +89,55 @@ describe('Persistent Node Chat Server', function() {
       });
     });
   });
+
+  // Test the GET users request
+  it('GET users should return all users in the table', function(done) {
+    let Time = new Date();
+    var queryString = `INSERT users (username, updatedAt, createdAt) VALUES (?,?,?);
+    INSERT users (username, updatedAt, createdAt) VALUES (?,?,?);
+    INSERT users (username, updatedAt, createdAt) VALUES (?,?,?);
+    INSERT users (username, updatedAt, createdAt) VALUES (?,?,?);`;
+    let queryArgs = ['Marlon', Time, Time, 'Virginia', Time, Time, 'Troy', Time, Time, 'Alex', Time, Time];
+
+    dbConnection.query(queryString, queryArgs, function(err) {
+      if (err) { throw err; }
+
+      // Query node server to return all existing users
+      request('http://127.0.0.1:3000/classes/users', function(error, response, body) {
+        var namesLog = JSON.parse(body);
+        expect(namesLog.length).to.equal(5);
+        expect(namesLog[4].username).to.equal('Alex');
+        done();
+      });
+    });
+  });
+
+  it('Should output corrent number of affected rows', function(done) {
+    let Time = new Date();
+
+    // let queryString = `
+    //   INSERT rooms (roomname, updatedAt, createdAt)VALUES (?, ?, ?);
+    //   INSERT rooms (roomname, updatedAt, createdAt) VALUES (?, ?, ?);
+    //   INSERT rooms (roomname, updatedAt, createdAt) VALUES (?, ?, ?);
+    // `;
+    let queryString = 'INSERT rooms (roomname, updatedAt, createdAt) VALUE (?, ?, ?), (?, ?, ?), (?, ?, ?)';
+
+    let queryArgs = ['bighouse', Time, Time, 'hugehouse', Time, Time, 'enormouse house', Time, Time];
+
+    dbConnection.query(queryString, queryArgs, function(err, results, fields) {
+      if (err) {
+        console.log('MARLON ERROR:', err);
+      } else {
+        console.log('MARLON RESULTS:', results, fields);
+        // let count = 0;
+
+        // results.forEach((q) => {
+        //   count += q.affectedRows;
+        // });
+
+        expect(results.affectedRows).to.equal(3);
+        done();
+      }
+    });
+  });
 });

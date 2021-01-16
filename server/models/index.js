@@ -61,14 +61,23 @@ module.exports = {
       const Users = db.models.users;
       Users.findAll()
         .then((fulfilled) => {
-          console.log('GET USER (fulfilled): ', fulfilled.dataValues);
-          callback(null, fulfilled.dataValues);
+          console.log('GET USER (fulfilled): ', fulfilled);
+          let results = [];
+
+          fulfilled.forEach((model) => {
+            let username = model.dataValues.username;
+            results.push({'username': username});
+          });
+          
+          callback(null, results);
+          // callback(null, fulfilled.dataValues);
         })
         .catch((err) => {
           console.log(err.name);
           callback(err);
         });
     },
+
     post: function (username, callback) {
       const Users = db.models.users;
       Users.create({username: username})
